@@ -8,6 +8,7 @@ var Api = (function() {
   // Publicly accessible methods defined
   return {
     sendRequest: sendRequest,
+    reply_click: reply_click,
 
     // The request/response getters/setters are defined here to prevent internal methods
     // from calling the methods without any of the callbacks that are added elsewhere.
@@ -45,6 +46,12 @@ var Api = (function() {
     http.onreadystatechange = function() {
       if (http.readyState === 4 && http.status === 200 && http.responseText) {
         Api.setResponsePayload(http.responseText);
+
+        // Check if buttons need to be displayed.
+        var buttonsToDisplay = displayButtons(JSON.parse(http.responseText));
+        if (buttonsToDisplay) {
+          makeButtons(buttonsToDisplay);
+        }
       }
     };
 
@@ -58,4 +65,33 @@ var Api = (function() {
     // Send request
     http.send(params);
   }
-}());
+
+  function makeButtons(data) {
+    for (var i = 0; i < data.length; i++) {
+      var text = data[i];
+      var button = document.createElement('button');
+      var t = document.createTextNode(text);
+      button.appendChild(t);
+      button.setAttribute('text', text);
+      button.setAttribute(
+        'onClick',
+        'Api.reply_click(this.getAttribute("text"))'
+      );
+      button.setAttribute(
+        'style',
+        'display:block; margin: 0 auto; margin-top: 8px; margin-bottom: 8px; padding:4px; background:#9855D4; color:#ffffff; border: none; border-radius: 5px; height: 40px; width: 240px; font-size: 14px;'
+      );
+      document.getElementById('scrollingChat').appendChild(button);
+    }
+  }
+
+  function displayButtons(response) {
+    return response.output.attachments &&
+      response.output.attachments.property &&
+      response.output.attachments.property.buttons;
+  }
+
+  function reply_click(text) {
+    sendRequest(text, Api.getResponsePayload().context); // Call Conversation again!!
+  }
+})();
